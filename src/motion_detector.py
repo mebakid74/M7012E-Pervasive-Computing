@@ -1,87 +1,131 @@
 # Import the necessary packages
-from imutils.video import VideoStream
+from picamera.array import PiRGBArray
+from picamera import PiCamera
 import argparse
 import datetime
 import imutils
+import json
 import time
 import cv2
+import uuid
+import os
+
+# Define the TempImage class for handling temporary images
+class TempImage:
+    def __init__(self, basePath="./", ext=".jpg"):
+        # Construct the file path
+        self.path = "{base_path}/{rand}{ext}".format(base_path=basePath,
+            rand=str(uuid.uuid4()), ext=ext)
+
+    def cleanup(self):
+        # Remove the file
+        os.remove(self.path)
 
 # Construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument ("-v", "--video", help="path to the video file") 
-ap.add_argument("-a", "--min-area", type=int, default=500, help="minimum area size")
+ap.add_argument("-c", "--conf", required=True, help="path to the JSON configuration file")
 args = vars(ap.parse_args())
 
-# If the video argument is None, then we are reading from webcam
-if args.get("video", None) is None:
-    vs = VideoStream(src=0).start()
-    time.sleep(2.0)
+# Load the configuration
+conf = json.load(open(args["conf"]))
 
-# Otherwise, we are reading from a video file
-else:
-    vs = cv2.VideoCApture(args["video"])
+# Initialize the camera and grab a reference to the raw camera capture
+camera = PiCamera()
+camera.resolution = tuple(conf["resolution"])
+camera.framerate = conf["fps"]
+rawCapture = PiRGBArray(camera, size=tuple(conf["resolution"]))
 
-# Initialize the first frame in the video stream
-firstFrame = None
+# Allow the camera to warm up
+print("[INFO] Warming up...")
+time.sleep(conf["camera_warmup_time"])
 
-# Loop over the frames of the video
-while True:
+# Initialize variables for motion detection
+avg = None
+lastUploaded = datetime.datetime.now()
+motionCounter = 0
 
-    # Grab the current frame and initialize the occupied/unoccupied text
-    frame = vs.read()
-    frame = frame if args.get("video", None) is None else frame[1]
+# Capture frames from the camera
+for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+    # Grab the raw NumPy array representing the image and initialize
+    # the timestamp and occupied/unoccupied text
+    frame = f.array
+    timestamp = datetime.datetime.now()
     text = "Unoccupied"
-
-    # If the frame could not be grabbed, then we have reached the end of the video
-    if frame is None:
-        break
-
-    # Resize the frame, convert it to grayscale and blur it
+    
+    # Resize the frame, convert it to grayscale, and blur it
     frame = imutils.resize(frame, width=500)
-    gray = cv2.ctColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (21, 21), 0)
-
-
-    # If the first frame is None, initialize it 
-    if firstFrame is None:
-        firstFrame = gray
+    
+    # If the average frame is None, initialize it
+    if avg is None:
+        print("[INFO] Starting background model...")
+        avg = gray.copy().astype("float")
+        rawCapture.truncate(0)
         continue
-
-    # Compute the absolute difference between the current frame and first frame
-    frameDelta = cv2.absdiff(firstFrame, gray)
-    thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY) [1]
-
-    # Dilate hte threshold image to fill in holes, then find contours on threshold image
+    
+    # Accumulate the weighted average between the current frame and
+    # previous frames, then compute the difference between the current
+    # frame and running average
+    cv2.accumulateWeighted(gray, avg, 0.5)
+    frameDelta = cv2.absdiff(gray, cv2.convertScaleAbs(avg))
+    
+    # Threshold the delta image, dilate the thresholded image to fill
+    # in holes, then find contours on thresholded image
+    thresh = cv2.threshold(frameDelta, conf["delta_thresh"], 255, cv2.THRESH_BINARY)[1]
     thresh = cv2.dilate(thresh, None, iterations=2)
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
-
+    
     # Loop over the contours
     for c in cnts:
         # If the contour is too small, ignore it
-        if cv2.contourArea(c) < args["min_area"]:
+        if cv2.contourArea(c) < conf["min_area"]:
             continue
-
-        # Compute the bounding box for the contour, draw it on the frame and update the text
-        (x, y, w, h) = cv2.boundRect(c)
+        # Compute the bounding box for the contour, draw it on the frame,
+        # and update the text
+        (x, y, w, h) = cv2.boundingRect(c)
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        text = "Authorized person"
+        text = "Occupied"
+    
+    # Draw the text and timestamp on the frame
+    ts = timestamp.strftime("%A %d %B %Y %I:%M:%S%p")
+    cv2.putText(frame, "Room Status: {}".format(text), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+    cv2.putText(frame, ts, (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+    
+    # Check to see if the room is occupied
+    if text == "Occupied":
+        # Check to see if enough time has passed between uploads
+        if (timestamp - lastUploaded).seconds >= conf["min_upload_seconds"]:
+            # Increment the motion counter
+            motionCounter += 1
+            # Check to see if the number of frames with consistent motion is
+            # high enough
+            if motionCounter >= conf["min_motion_frames"]:
+                # Check to see if dropbox should be used
+                if conf["use_dropbox"]:
+                    # Write the image to a temporary file
+                    t = TempImage()
+                    cv2.imwrite(t.path, frame)
+                    # Upload the image to Dropbox and cleanup the temporary image
+                    print("[UPLOAD] {}".format(ts))
+                    path = "/{base_path}/{timestamp}.jpg".format(
+                        base_path=conf["dropbox_base_path"], timestamp=ts)
+                    client.files_upload(open(t.path, "rb").read(), path)
+                    t.cleanup()
+                # Update the last uploaded timestamp and reset the motion counter
+                lastUploaded = timestamp
+                motionCounter = 0
+    
+    # Display the frame
+    cv2.imshow("Security Feed", frame)
+    key = cv2.waitKey(1) & 0xFF
+    # If the `q` key is pressed, break from the loop
+    if key == ord("q"):
+        break
+    
+    # Clear the stream in preparation for the next frame
+    rawCapture.truncate(0)
 
-        # Draw the text and timestamp on the frame
-        cv2.putText(frame, "Room Status: {}".format(text), (10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-        cv2.putText(frame, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10), cv2.FRONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
-
-        # Show the frame and record if the user presses a key
-        cv2.imshow("Security Feed", frame)
-        cv2.imshow("Thresh", thresh)
-        cv2.imshow("Frame Delta", frameDelta)
-        key = cv2.waitkey(1) & 0xFF
-
-        # If the "q" key is pressed, break the loop
-        if key == ord("q"):
-            break
-
-        # Cleanup the camera and close any open window
-        vs.stop() if args.get("video", None) is None else vs.release()
-        cv2.destroyAllWindows()
-        
+# Clean up the camera and close any open windows
+cv2.destroyAllWindows()
