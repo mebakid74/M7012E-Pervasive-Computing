@@ -1,8 +1,6 @@
 # Import the necessary packages
-import picamera
-import picamera.array
-#from picamera.array import PiRGBArray
-#from picamera import PiCamera
+from picamera.array import PiRGBArray 
+from picamera import PiCamera 
 import argparse
 import datetime
 import imutils

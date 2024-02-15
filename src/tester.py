@@ -2,7 +2,13 @@ import cv2
 import time
 import pandas
 from datetime import datetime
-
+from picamera.array import PiRGBArray 
+from picamera import PiCamera 
+import time 
+import cv2 
+import numpy as np 
+from gtts import gTTS
+import os 
 import smtplib
 import threading
 from email.mime.text import MIMEText

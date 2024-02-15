@@ -16,19 +16,13 @@ def speak(a):
 
 
 
-
-
-
-
-
-
 # Initialize the camera
 camera = PiCamera()
  
 # Set the camera resolution
 camera.resolution = (640, 480)
 
-camera.rotation = 180
+camera.rotation = 360
  
 # Set the number of frames per second
 camera.framerate = 30
