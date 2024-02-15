@@ -6,10 +6,19 @@ from datetime import datetime
 import smtplib
 import threading
 from email.mime.text import MIMEText
+
+# Load the Haar cascade for face detection
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 
-gmail_user = "rakeshranjan8792@gmail.com"
-gmail_pwd = "rakranjan"
+# Email configuration
+gmail_user = "your_email@gmail.com"
+gmail_pwd = "your_password"
+smtp_ssl_host = 'smtp.gmail.com'
+smtp_ssl_port = 465
+sender = 'your_email@gmail.com'
+targets = ['recipient_email@gmail.com']
+
+# Initialize variables
 first_frame = None
 status_list = [None, None]
 times = []
@@ -28,30 +37,31 @@ flag = 1
 mode = int(input("Enter 1 for Motion Detection, 2 for Intrusion Detection: "))
 
 def mail():
-    smtp_ssl_host = 'smtp.gmail.com'  # smtp.mail.yahoo.com
-    smtp_ssl_port = 465
-    username = 'rakeshranjan8792@gmail.com'
-    password = 'rakranjan'
-    sender = 'rakeshranjan8792@gmail.com'
-    targets = ['rakesh.emperor@gmail.com']
-
+    # Email content
     msg = MIMEText('Intrusion is occurring')
     msg['Subject'] = 'Security Alert'
     msg['From'] = sender
     msg['To'] = ', '.join(targets)
 
+    # Send email
     server = smtplib.SMTP_SSL(smtp_ssl_host, smtp_ssl_port)
-    server.login(username, password)
+    server.login(gmail_user, gmail_pwd)
     server.sendmail(sender, targets, msg.as_string())
     server.quit()
 
 while True:
+    # Capture frame-by-frame
     check, frame = camera.read()
     status = 0
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (21, 21), 0)
     
     if mode == 1:
+        # Motion Detection
+        if first_frame is None:
+            first_frame = gray
+            continue
+
         delta_frame = cv2.absdiff(first_frame, gray)
         thresh_frame = cv2.threshold(delta_frame, 30, 255, cv2.THRESH_BINARY)[1]
         thresh_frame = cv2.dilate(thresh_frame, None, iterations=2)
@@ -66,34 +76,23 @@ while True:
             (x, y, w, h) = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
     else:
+        # Face Detection
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5)
 
         for x, y, w, h in faces:
             frame = cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
             status = 1
 
-    if first_frame is None:
-        first_frame = gray
-        continue
-
-    delta_frame = cv2.absdiff(first_frame, gray)
-    thresh_frame = cv2.threshold(delta_frame, 30, 255, cv2.THRESH_BINARY)[1]
-    thresh_frame = cv2.dilate(thresh_frame, None, iterations=2)
-
-    (_, cnts, _) = cv2.findContours(thresh_frame.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    for contour in cnts:
-        if cv2.contourArea(contour) < 10000:
-            continue
-
     status_list.append(status)
     status_list = status_list[-2:]
+    
+
 
     if status_list[-1] == 1 and status_list[-2] == 0:
         times.append(datetime.now())
         start_time = time.time()
         print("Enter")
-        cv2.imwrite("yolo.jpg", frame)
+        cv2.imwrite("intruder.jpg", frame)
         flag = 0
 
     if status_list[-1] == 0 and status_list[-2] == 1:
@@ -116,12 +115,15 @@ while True:
         if emailtimelapse > 50000:
             mail()
         flag = 1
+        # Display the resulting frames
+    cv2.imshow("Frame", frame)  # Original frame with detections
+    cv2.imshow("Gray Frame", gray)  # Gray frame
+    cv2.imshow("Delta Frame", delta_frame)  # Delta frame
+    cv2.imshow("Threshold Frame", thresh_frame)  # Threshold frame
 
-    cv2.imshow("Gray Frame", gray)
-    cv2.imshow("Delta Frame", delta_frame)
-    cv2.imshow("Threshold Frame", thresh_frame)
-    cv2.imshow("Color Frame", frame)
 
+    # Display the resulting frame
+    cv2.imshow("Frame", frame)
     key = cv2.waitKey(1)
 
     if key == ord('q'):
@@ -132,10 +134,12 @@ while True:
 print(status_list)
 print(times)
 
+# Save the detected times to a CSV file
 for i in range(0, len(times), 2):
     df = df.append({"Start": times[i], "End": times[i+1]}, ignore_index=True)
 
-df.to_csv("Times.csv")
+df.to_csv("Intrusion_Times.csv")
 
+# Release the camera and close all windows
 camera.release()
 cv2.destroyAllWindows()

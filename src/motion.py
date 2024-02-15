@@ -8,7 +8,6 @@ import os
 
 
 
-
 def speak(a):
     tts = gTTS(text=a, lang='en')
     tts.save("audio.mp3")
