@@ -16,7 +16,7 @@ import threading
 from email.mime.text import MIMEText
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 
-DROPBOX_ACCESS_TOKEN = 'sl.Bv5uDPTDSSJ8BzUCaP9GmWeRB5DMUwSMZ-C5PiAyjPHB7Hbei9td0EnrKu7fX1Kyes75aOfWRvyePAWwKiOYbaQvoIeO32HP_d9z42nnMfVax4x_avUa4LzZUHStJssBca9vn5wmG1Zh'
+DROPBOX_ACCESS_TOKEN = 'token'
 dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
 
 gmail_user = "rakeshranjan8792@gmail.com"
@@ -29,7 +29,6 @@ etime = []
 df = pandas.DataFrame(columns=["Start", "End"])
 
 video = cv2.VideoCapture(0)
-
 
 start_time = time.time()
 flag = 1
@@ -44,9 +43,9 @@ def speak(a):
 def mail():
     smtp_ssl_host = 'smtp.gmail.com'  # smtp.mail.yahoo.com
     smtp_ssl_port = 465
-    username = 'rakeshranjan8792@gmail.com'
-    password = 'rakranjan'
-    sender = 'rakeshranjan8792@gmail.com'
+    username = 'mebakid.dev@gmail.com'
+    password = ''
+    sender = 'mebakid.dev@gmail.com'
     targets = ['rakesh.emperor@gmail.com']
 
     msg = MIMEText('Intrusion is occuring')
@@ -58,7 +57,6 @@ def mail():
     server.login(username, password)
     server.sendmail(sender, targets, msg.as_string())
     server.quit()
-
 
 while True:
 
@@ -107,7 +105,7 @@ while True:
 
         for contour in cnts:
             if cv2.contourArea(contour) < 10000:
-                continu
+                continue
     
     status_list.append(status)
     status_list = status_list[-2:]
@@ -116,10 +114,8 @@ while True:
         times.append(datetime.now())
         start_time = time.time()
         print("Enter")
-        cv2.iwrite("motion_image.jpg", frame)
+        cv2.imwrite("motion_image.jpg", frame)
         #cv2.imwrite("yolo.jpg", frame)
-        with open("motion_image.jpg", "rb") as f:
-            dbx.files_upload(f.read(), '/motion_images/motion_image.jpg') #upload to dropbox
         flag = 0
 
     if status_list[-1] == 0 and status_list[-2] == 1:
