@@ -38,6 +38,22 @@ drive_service = build('drive', 'v3', credentials=creds)
 
 # Initialize OpenCV objects
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+<<<<<<< HEAD
+=======
+
+#DROPBOX_ACCESS_TOKEN = 'sl.Bv4vdmH95BFwGzbtRImkrLYtPavIH69TZWGFFEhM7wI0htdZBUck6hpeAomUUDxhzELsQOUyF6HkRYZPkzcbznOVJBj2AY7ZTbTJ_MYgU3UHW73yaiArtdRKKcy9091gnWVeL8aSQPKi'
+dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
+
+gmail_user = "rakeshranjan8792@gmail.com"
+gmail_pwd = "rakranjan"
+
+first_frame = None
+status_list = [None, None]
+times = []
+etime = []
+df = pandas.DataFrame(columns=["Start", "End"])
+
+>>>>>>> ac5bdc3717a47e13410e1d403aecf2d9c6311e21
 video = cv2.VideoCapture(0)
 start_time = time.time()
 flag = 1
