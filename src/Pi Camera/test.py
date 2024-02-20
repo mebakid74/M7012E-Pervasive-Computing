@@ -11,6 +11,8 @@ import threading
 from email.mime.text import MIMEText
 from picamera.array import PiRGBArray
 from picamera import PiCamera
+import utils
+import yaml
 
 # Importing MotionModel from your custom model file
 from model import MotionModel
