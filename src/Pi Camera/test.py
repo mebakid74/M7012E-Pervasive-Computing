@@ -78,8 +78,11 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         times.append(datetime.now())
         start_time = time.time()
         print("Intruder has Entered")
-        image_path = os.path.join(captured, f"intruder_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
+        image_path = os.path.join(captured, f"intruder_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
         cv2.imwrite(image_path, frame)
+
+        out.write(frame)
+
         flag = 0
 
     if status_list[-1] == 0 and status_list[-2] == 1:
@@ -88,6 +91,7 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         print("Intruder has Exited")
 
     elapsed_time = time.time() - start_time
+    
     if elapsed_time > 3 and flag == 0:
         print("Intruder has been Detected")
         flag = 1
@@ -96,7 +100,7 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
     cv2.imshow("Delta Frame", delta_frame)
     cv2.imshow("Threshold Frame", thresh_frame)
     cv2.imshow("Color Frame", frame)
-    out.write(frame)
+    #out.write(frame)
 
     key = cv2.waitKey(1) & 0xFF
     if key == ord('q'):
