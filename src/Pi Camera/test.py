@@ -11,10 +11,10 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 
 # Importing MotionModel from your custom model file
-from model import MotionModel
+#from model import MotionModel
 
 # Initialize the MotionModel
-model = MotionModel()
+#model = MotionModel()
 
 # Initialize the camera
 camera = PiCamera()
