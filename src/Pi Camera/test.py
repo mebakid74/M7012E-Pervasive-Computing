@@ -30,7 +30,8 @@ if not os.path.exists(captured):
 
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
+#out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
+out = cv2.VideoWriter(os.path.join(captured, 'output.avi'), fourcc, 20.0, (640, 480))
 
 start_time = time.time()
 flag = 1
@@ -64,12 +65,13 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
             status = 1
             (x, y, w, h) = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
-
+            cv2.putText(frame, "Unauthorized person", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
     else:
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5)
         for (x, y, w, h) in faces:
             frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
             status = 1
+            cv2.putText(frame, "Motion Detected", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
     status_list.append(status)
     status_list = status_list[-2:]
@@ -80,8 +82,12 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         print("Intruder has Entered")
         image_path = os.path.join(captured, f"intruder_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
         cv2.imwrite(image_path, frame)
+        
+        print("Image captured!")
+        out.release()  # Release the previous video writer
+        out = cv2.VideoWriter(os.path.join(captured, f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
 
-        out.write(frame)
+        #out.write(frame)
 
         flag = 0
 
