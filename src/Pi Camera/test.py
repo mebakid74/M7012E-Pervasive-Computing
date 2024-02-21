@@ -16,10 +16,10 @@ camera.resolution = (640, 480)
 camera.framerate = 30
 raw_capture = PiRGBArray(camera, size=(640, 480))
 
-camera.start_recording('recorded.h264')
-camera.wait_recording(10)
-camera.stop_recording()
-camera.stop_preview()
+#camera.start_recording('recorded.h264')
+#camera.wait_recording(10)
+#camera.stop_recording()
+#camera.stop_preview()
 
 # Load the Haar cascade classifier for face detection
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
@@ -36,9 +36,12 @@ if not os.path.exists(captured):
     os.makedirs(captured)
 
 # Define the codec and create VideoWriter object
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
+#fourcc = cv2.VideoWriter_fourcc(*'XVID')
+fourcc = cv2.VideoWriter_fourcc(*'MPEG')
+out = cv2.VideoWriter('output2.avi',fourcc, 20.0, (640,480))
 #out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
-out = cv2.VideoWriter(os.path.join(captured, 'output.avi'), fourcc, 20.0, (640, 480))
+out = None
+#out = cv2.VideoWriter(os.path.join(captured, 'output.avi'), fourcc, 20.0, (640, 480))
 
 start_time = time.time()
 flag = 1
@@ -73,12 +76,18 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
             (x, y, w, h) = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
             cv2.putText(frame, "Unauthorized person", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+            if out is None:  # Start recording if not already recording
+                print("Started Recording Intrusion Video")
+                out = cv2.VideoWriter(os.path.join(captured, f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
     else:
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5)
         for (x, y, w, h) in faces:
             frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
             status = 1
             cv2.putText(frame, "Motion Detected", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+            if out is None:  # Start recording if not already recording
+                print("Started Recording Motion Video")
+                out = cv2.VideoWriter(os.path.join(captured, f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
 
     status_list.append(status)
     status_list = status_list[-2:]
@@ -90,10 +99,10 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         print("Intruder has Entered")
         image_path = os.path.join(captured, f"intruder_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
         cv2.imwrite(image_path, frame)
-        
         print("Image captured!")
-        out.release()  # Release the previous video writer
-        out = cv2.VideoWriter(os.path.join(captured, f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
+
+        #out.release()  # Release the previous video writer
+        #out = cv2.VideoWriter(os.path.join(captured, f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
 
         #out.write(frame)
 
@@ -115,7 +124,9 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
     cv2.imshow("Threshold Frame", thresh_frame)
     cv2.imshow("Color Frame", frame)
     
-    out.write(frame)
+    #out.write(frame)
+    if out is not None:
+        out.write(frame)
 
     key = cv2.waitKey(1) & 0xFF
     if key == ord('q'):
@@ -131,5 +142,7 @@ for i in range(0, len(times), 2):
 df.to_csv("Times.csv")
 
 # Release resources
-out.release()
+#out.release()
+if out is not None:
+    out.release()
 cv2.destroyAllWindows()
