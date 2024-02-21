@@ -8,11 +8,18 @@ import imutils
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 
+from time import sleep
+
 # Initialize the camera
 camera = PiCamera()
 camera.resolution = (640, 480)
 camera.framerate = 30
 raw_capture = PiRGBArray(camera, size=(640, 480))
+
+camera.start_recording('recorded.h264')
+camera.wait_recording(10)
+camera.stop_recording()
+camera.stop_preview()
 
 # Load the Haar cascade classifier for face detection
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
@@ -79,6 +86,7 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
     if status_list[-1] == 1 and status_list[-2] == 0:
         times.append(datetime.now())
         start_time = time.time()
+
         print("Intruder has Entered")
         image_path = os.path.join(captured, f"intruder_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
         cv2.imwrite(image_path, frame)
