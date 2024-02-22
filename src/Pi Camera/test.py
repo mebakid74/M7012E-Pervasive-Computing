@@ -8,18 +8,11 @@ import imutils
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 
-from time import sleep
-
-# Initialize the camera
+# Initialize the Pi Camera
 camera = PiCamera()
 camera.resolution = (640, 480)
 camera.framerate = 30
 raw_capture = PiRGBArray(camera, size=(640, 480))
-
-#camera.start_recording('recorded.h264')
-#camera.wait_recording(10)
-#camera.stop_recording()
-#camera.stop_preview()
 
 # Load the Haar cascade classifier for face detection
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
@@ -34,12 +27,14 @@ df = pd.DataFrame(columns=["Start", "End"])
 captured = "Pi Camera/captured"
 if not os.path.exists(captured):
     os.makedirs(captured)
+    os.makedirs(os.path.join(captured, "colorframe"))
+    os.makedirs(os.path.join(captured, "deltaframe"))
+    os.makedirs(os.path.join(captured, "grayframe"))
+    os.makedirs(os.path.join(captured, "thresholdframe"))
+    os.makedirs(os.path.join(captured, "video"))
 
 # Define the codec and create VideoWriter object
-#fourcc = cv2.VideoWriter_fourcc(*'XVID')
-fourcc = cv2.VideoWriter_fourcc(*'MPEG')
-out = cv2.VideoWriter('output2.avi',fourcc, 20.0, (640,480))
-#out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
+fourcc = cv2.VideoWriter_fourcc(*'H264')
 out = None
 #out = cv2.VideoWriter(os.path.join(captured, 'output.avi'), fourcc, 20.0, (640, 480))
 
@@ -75,19 +70,24 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
             status = 1
             (x, y, w, h) = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
-            cv2.putText(frame, "Unauthorized person", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-            if out is None:  # Start recording if not already recording
+            cv2.putText(frame, "Motion Detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+            
+            # Start recording if not already recording
+            if out is None:  
                 print("Started Recording Intrusion Video")
-                out = cv2.VideoWriter(os.path.join(captured, f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
+                out = cv2.VideoWriter(os.path.join(captured, "video", f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
     else:
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5)
         for (x, y, w, h) in faces:
             frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
             status = 1
-            cv2.putText(frame, "Motion Detected", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-            if out is None:  # Start recording if not already recording
+            
+            cv2.putText(frame, "Unauthorized person", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+            
+            # Start recording if not already recording
+            if out is None:  
                 print("Started Recording Motion Video")
-                out = cv2.VideoWriter(os.path.join(captured, f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
+                out = cv2.VideoWriter(os.path.join(captured, "video", f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
 
     status_list.append(status)
     status_list = status_list[-2:]
@@ -97,14 +97,21 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         start_time = time.time()
 
         print("Intruder has Entered")
-        image_path = os.path.join(captured, f"intruder_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
-        cv2.imwrite(image_path, frame)
-        print("Image captured!")
+        color_path = os.path.join(captured, "colorframe", f"intruder_color_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
+        cv2.imwrite(color_path, frame)
+        print("Color Frame captured!")
 
-        #out.release()  # Release the previous video writer
-        #out = cv2.VideoWriter(os.path.join(captured, f'video_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.avi'), fourcc, 20.0, (640, 480))
+        gray_path = os.path.join(captured, "grayframe", f"intruder_gray_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
+        cv2.imwrite(gray_path, gray)
+        print("Gray Frame captured!")
 
-        #out.write(frame)
+        delta_path = os.path.join(captured, "deltaframe", f"intruder_delta_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
+        cv2.imwrite(delta_path, delta_frame)
+        print("Delta Frame captured!")
+
+        thresh_path = os.path.join(captured, "thresholdframe", f"intruder_thresh_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
+        cv2.imwrite(thresh_path, thresh_frame)
+        print("Threshold Frame captured!")
 
         flag = 0
 
@@ -136,10 +143,13 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
 
     raw_capture.truncate(0)
 
+# Initialize an empty DataFrame
+df = pd.DataFrame()
+
 # Save data to CSV file
 for i in range(0, len(times), 2):
     df = df.append({"Start": times[i], "End": times[i + 1]}, ignore_index=True)
-df.to_csv("Times.csv")
+df.to_csv("Data Time.csv")
 
 # Release resources
 #out.release()
