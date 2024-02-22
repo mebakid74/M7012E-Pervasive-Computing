@@ -135,12 +135,17 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
     if out is not None:
         out.write(frame)
 
+    # Wait for keyPress for 1 millisecond
     key = cv2.waitKey(1) & 0xFF
+
+    # If "q" is pressed on the keyboard, 
+    # exit this loop
     if key == ord('q'):
         if status == 1:
             times.append(datetime.now())
         break
 
+    # Clear the stream in preparation for the next frame
     raw_capture.truncate(0)
 
 # Initialize an empty DataFrame
@@ -155,4 +160,6 @@ df.to_csv("Data Time.csv")
 #out.release()
 if out is not None:
     out.release()
+    
+# Close down windows
 cv2.destroyAllWindows()
