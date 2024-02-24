@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 import imutils
+import dropbox
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 
@@ -16,6 +17,10 @@ raw_capture = PiRGBArray(camera, size=(640, 480))
 
 # Load the Haar cascade classifier for face detection
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+
+# Initialize Dropbox client
+access_token = 'token here'
+dbx = dropbox.Dropbox(access_token)
 
 # Initialize variables
 first_frame = None
@@ -43,10 +48,16 @@ flag = 1
 
 mode = int(input("Enter 1 for Motion Detection, 2 for Intrusion Detection: "))
 
+# Function to upload a file to Dropbox
+def upload_to_dropbox(local_file_path, dropbox_file_path):
+    with open(local_file_path, 'rb') as f:
+        dbx.files_upload(f.read(), dropbox_file_path)
+
 # Main loop
 for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
     frame = frame.array
     frame = imutils.resize(frame, width=500)
+
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
@@ -96,21 +107,28 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         times.append(datetime.now())
         start_time = time.time()
 
+        # Debug output
+        print("Capturing frame...")
+
         print("Intruder has Entered")
-        color_path = os.path.join(captured, "colorframe", f"intruder_color_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
-        cv2.imwrite(color_path, frame)
+        color_frame_path = os.path.join(captured, "colorframe", f"intruder_color_frame_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
+        cv2.imwrite(color_frame_path, frame)
+        upload_to_dropbox(color_frame_path, f'/Pi_Camera_Frames/colorframe/{os.path.basename(color_frame_path)}')
         print("Color Frame captured!")
 
-        gray_path = os.path.join(captured, "grayframe", f"intruder_gray_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
-        cv2.imwrite(gray_path, gray)
+        gray_frame_path = os.path.join(captured, "grayframe", f"intruder_gray_frame_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
+        cv2.imwrite(gray_frame_path, gray)
+        upload_to_dropbox(gray_frame_path, f'/Pi_Camera_Frames/grayframe/{os.path.basename(gray_frame_path)}')
         print("Gray Frame captured!")
 
-        delta_path = os.path.join(captured, "deltaframe", f"intruder_delta_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
-        cv2.imwrite(delta_path, delta_frame)
+        delta_frame_path = os.path.join(captured, "deltaframe", f"intruder_delta_frame_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
+        cv2.imwrite(delta_frame_path, delta_frame)
+        upload_to_dropbox(delta_frame_path, f'/Pi_Camera_Frames/deltaframe/{os.path.basename(delta_frame_path)}')
         print("Delta Frame captured!")
 
-        thresh_path = os.path.join(captured, "thresholdframe", f"intruder_thresh_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
-        cv2.imwrite(thresh_path, thresh_frame)
+        threshold_frame_path = os.path.join(captured, "thresholdframe", f"intruder_thresh_frame_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
+        cv2.imwrite(threshold_frame_path, thresh_frame)
+        upload_to_dropbox(threshold_frame_path, f'/Pi_Camera_Frames/thresholdframe/{os.path.basename(threshold_frame_path)}')
         print("Threshold Frame captured!")
 
         flag = 0
@@ -144,6 +162,13 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         if status == 1:
             times.append(datetime.now())
         break
+
+    # Example: Save a frame to Dropbox
+    file_name = f'frame_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.jpg'
+    local_file_path = os.path.join(captured, file_name)
+    cv2.imwrite(local_file_path, frame)
+    dropbox_file_path = f'/Pi_Camera_Frames/{file_name}'
+    upload_to_dropbox(local_file_path, dropbox_file_path)
 
     # Clear the stream in preparation for the next frame
     raw_capture.truncate(0)
