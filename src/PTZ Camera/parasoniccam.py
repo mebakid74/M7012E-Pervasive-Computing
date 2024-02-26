@@ -53,6 +53,11 @@ def detect_and_track_human():
                 for (x, y, w, h) in humans:
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
+                    # Check if the face is at the edge of the frame
+                    if x <= 10 or y <= 10 or x + w >= frame.shape[1] - 10 or y + h >= frame.shape[0] - 10:
+                        # Adjust camera position to keep the face in view
+                        control_camera(pan=10, tilt=10)  # You may adjust these values as needed
+
                 # Display frame with human detection
                 cv2.imshow('Human Detection', frame)
 
