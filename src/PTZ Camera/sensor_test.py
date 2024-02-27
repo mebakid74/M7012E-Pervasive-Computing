@@ -29,9 +29,9 @@ def quat_to_euler(w, x, y, z):
 class SignalRClient:
     def __init__(self):
         self.addr = {
-            "urlEH": "http://130.240.114.115:33001/hubs/eventHub",
-            "urlApi": "http://130.240.114.115:5000/v2/",
-            "macPerson": "F8:8A:6C:0A:56:49"
+            "urlEH": "http://130.240.105.144:33001/hubs/eventHub", # 130.240.114.115
+            "urlApi": "http://130.240.105.144:5000/v2/", #130.240.114.115
+            "macPerson": "D5:6D:EF:33:77:14"
         }
         self.client = HubConnectionBuilder()\
                .with_url(self.addr["urlEH"],
@@ -125,7 +125,7 @@ def startHost():
 
 dataQueue = queue.Queue(maxsize=1)
 
-ip = "130.240.114.121"
+ip = "130.240.105.144" # "130.240.114.121"
 port = 8081
 
 server = HTTPServer((ip, port), RelayWebServer)
