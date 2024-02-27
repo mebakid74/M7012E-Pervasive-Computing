@@ -23,7 +23,7 @@ def control_camera(pan, tilt):
 # Function to detect and track humans
 def detect_and_track_human():
     # Load pre-trained Haar cascade classifier for full body detection
-    human_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    human_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fullbodyx.xml')
 
     url = "http://130.240.105.144/cgi-bin/mjpeg?resolution=640x480&framerate=30&quality=1"
     stream = requests.get(url, stream=True)
@@ -52,6 +52,11 @@ def detect_and_track_human():
                 # Draw rectangles around detected humans
                 for (x, y, w, h) in humans:
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+                    # Check if the face is at the edge of the frame
+                    if x <= 10 or y <= 10 or x + w >= frame.shape[1] - 10 or y + h >= frame.shape[0] - 10:
+                        # Adjust camera position to keep the face in view
+                        control_camera(pan=10, tilt=10)  # You may adjust these values as needed
 
                 # Display frame with human detection
                 cv2.imshow('Human Detection', frame)
