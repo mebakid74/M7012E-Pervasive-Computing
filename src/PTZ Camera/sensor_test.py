@@ -31,8 +31,7 @@ class SignalRClient:
         self.addr = {
             "urlEH": "http://130.240.114.115:33001/hubs/eventHub",
             "urlApi": "http://130.240.114.115:5000/v2/",
-            "macPerson": "F8:8A:6C:0A:56:49",
-            "macRobot":  "D5:6D:EF:33:77:14"
+            "macPerson": "F8:8A:6C:0A:56:49"
         }
         self.client = HubConnectionBuilder()\
                .with_url(self.addr["urlEH"],
@@ -43,7 +42,6 @@ class SignalRClient:
         self.client.on_close(lambda: print("connection closed"))
         self.client.on("Event", self.onCallback)
         self.latestPerson = [0, 0, 0, 0, 0, 0]
-        self.latestRobot = [0, 0, 0, 0, 0, 0]
 
     def start(self):
         self.client.start()
@@ -80,9 +78,6 @@ class SignalRClient:
         if d["Source"]["MAC"] == self.addr["macPerson"]:
             angle = d["Content"]["Orientation"]
             self.latestPerson = d["Content"]["Position"] + quat_to_euler(angle[0], angle[1], angle[2], angle[3])
-        elif d["Source"]["MAC"] == self.addr["macRobot"]:
-            angle = d["Content"]["Orientation"]
-            self.latestRobot = d["Content"]["Position"] + quat_to_euler(angle[0], angle[1], angle[2], angle[3])
 
         data = {
             "sensor_x": self.latestPerson[0],
@@ -104,10 +99,21 @@ class RelayWebServer(BaseHTTPRequestHandler):
         self.wfile.write(bytes(pos, 'utf-8'))
 
 def update_data(data):
-    # Update the border limits and sensor coordinates based on received data
     global border_min_x, border_max_x, border_min_y, border_max_y, border_min_z, border_max_z, sensor_x, sensor_y, sensor_z
-    # Implement the update logic
-    pass
+    # Assuming data contains sensor coordinates
+    sensor_x = data["sensor_x"]
+    sensor_y = data["sensor_y"]
+    sensor_z = data["sensor_z"]
+
+    # Implement the update logic for border limits
+    # For example:
+    border_min_x = sensor_x - 10  # Adjust with appropriate values
+    border_max_x = sensor_x + 10
+    border_min_y = sensor_y - 10
+    border_max_y = sensor_y + 10
+    border_min_z = sensor_z - 10
+    border_max_z = sensor_z + 10
+
 
 def startHost():
     print("Hosting")
