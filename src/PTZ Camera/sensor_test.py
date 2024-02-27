@@ -8,6 +8,8 @@ import math
 import json
 from signalrcore.hub_connection_builder import HubConnectionBuilder
 
+# pip install signalrcore
+# something is very wrong in this code + need to define borders, and somehow utilize signalrcore which i dont think i did for now
 # https://stackoverflow.com/questions/56207448/efficient-quaternions-to-euler-transformation
 def quat_to_euler(w, x, y, z):
     ysqr = y * y
