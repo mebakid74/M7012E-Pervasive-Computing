@@ -25,7 +25,7 @@ def detect_and_track_human():
     # Load pre-trained Haar cascade classifier for full body detection
     human_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-    url = "http://130.240.105.144/cgi-bin/mjpeg?resolution=1920x1080&framerate=30&quality=1"
+    url = "http://130.240.105.144/cgi-bin/mjpeg?resolution=640x480&framerate=30&quality=1"
     stream = requests.get(url, stream=True)
     video_bytes = bytes()
 
