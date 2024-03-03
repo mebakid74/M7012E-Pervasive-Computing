@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 import imutils
+import dropbox
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 
@@ -16,6 +17,10 @@ raw_capture = PiRGBArray(camera, size=(640, 480))
 
 # Load the Haar cascade classifier for face detection
 face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+
+# Initialize Dropbox client
+access_token ='enter token here'
+dbx = dropbox.Dropbox(access_token)
 
 # Initialize variables
 first_frame = None
@@ -36,11 +41,17 @@ if not os.path.exists(captured):
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc(*'H264')
 out = None
+#out = cv2.VideoWriter(os.path.join(captured, 'output.avi'), fourcc, 20.0, (640, 480))
 
 start_time = time.time()
 flag = 1
 
 mode = int(input("Enter 1 for Motion Detection, 2 for Intrusion Detection: "))
+
+# Function to upload a file to Dropbox
+def upload_to_dropbox(local_file_path, dropbox_file_path):
+    with open(local_file_path, 'rb') as f:
+        dbx.files_upload(f.read(), dropbox_file_path)
 
 # Main loop
 for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
@@ -70,7 +81,7 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
             status = 1
             (x, y, w, h) = cv2.boundingRect(contour)
             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
-            cv2.putText(frame, "Motion Detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.putText(frame, "Motion Detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
             
             # Start recording if not already recording
             if out is None:  
@@ -82,7 +93,7 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
             frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
             status = 1
             
-            cv2.putText(frame, "Unauthorized person", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.putText(frame, "Unauthorized person", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
             
             # Start recording if not already recording
             if out is None:  
@@ -102,18 +113,22 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         print("Intruder has Entered")
         color_frame_path = os.path.join(captured, "colorframe", f"intruder_color_frame_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
         cv2.imwrite(color_frame_path, frame)
+        upload_to_dropbox(color_frame_path, f'/Pi_Camera_Frames/colorframe/{os.path.basename(color_frame_path)}')
         print("Color Frame captured!")
 
         gray_frame_path = os.path.join(captured, "grayframe", f"intruder_gray_frame_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
         cv2.imwrite(gray_frame_path, gray)
+        upload_to_dropbox(gray_frame_path, f'/Pi_Camera_Frames/grayframe/{os.path.basename(gray_frame_path)}')
         print("Gray Frame captured!")
 
         delta_frame_path = os.path.join(captured, "deltaframe", f"intruder_delta_frame_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
         cv2.imwrite(delta_frame_path, delta_frame)
+        upload_to_dropbox(delta_frame_path, f'/Pi_Camera_Frames/deltaframe/{os.path.basename(delta_frame_path)}')
         print("Delta Frame captured!")
 
         threshold_frame_path = os.path.join(captured, "thresholdframe", f"intruder_thresh_frame_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.jpg")
         cv2.imwrite(threshold_frame_path, thresh_frame)
+        upload_to_dropbox(threshold_frame_path, f'/Pi_Camera_Frames/thresholdframe/{os.path.basename(threshold_frame_path)}')
         print("Threshold Frame captured!")
 
         flag = 0
@@ -133,6 +148,10 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
     cv2.imshow("Delta Frame", delta_frame)
     cv2.imshow("Threshold Frame", thresh_frame)
     cv2.imshow("Color Frame", frame)
+    
+    #out.write(frame)
+    if out is not None:
+        out.write(frame)
 
     # Wait for keyPress for 1 millisecond
     key = cv2.waitKey(1) & 0xFF
@@ -140,10 +159,32 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
     # If "q" is pressed on the keyboard, 
     # exit this loop
     if key == ord('q'):
+        if status == 1:
+            times.append(datetime.now())
         break
+
+    # Example: Save a frame to Dropbox
+    file_name = f'frame_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.jpg'
+    local_file_path = os.path.join(captured, file_name)
+    cv2.imwrite(local_file_path, frame)
+    dropbox_file_path = f'/Pi_Camera_Frames/{file_name}'
+    upload_to_dropbox(local_file_path, dropbox_file_path)
 
     # Clear the stream in preparation for the next frame
     raw_capture.truncate(0)
 
+# Initialize an empty DataFrame
+df = pd.DataFrame()
+
+# Save data to CSV file
+for i in range(0, len(times), 2):
+    df = df.append({"Start": times[i], "End": times[i + 1]}, ignore_index=True)
+df.to_csv("Data Time.csv")
+
 # Release resources
+#out.release()
+if out is not None:
+    out.release()
+    
+# Close down windows
 cv2.destroyAllWindows()
