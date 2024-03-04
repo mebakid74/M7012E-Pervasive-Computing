@@ -69,8 +69,8 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
                 continue
             status = 1
             (x, y, w, h) = cv2.boundingRect(contour)
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
-            cv2.putText(frame, "Motion Detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 3)
+            cv2.putText(frame, "Unauthorized person", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
             
             # Start recording if not already recording
             if out is None:  
@@ -79,10 +79,10 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
     else:
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=5)
         for (x, y, w, h) in faces:
-            frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
+            frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 3)
             status = 1
             
-            cv2.putText(frame, "Unauthorized person", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            cv2.putText(frame, "Motion Detected", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
             
             # Start recording if not already recording
             if out is None:  
