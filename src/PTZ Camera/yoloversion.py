@@ -32,8 +32,8 @@ def get_output_layers(net):
 
 def draw_prediction(img, class_id, x, y, x_plus_w, y_plus_h):
     if class_id == 0:
-        label = 'person'
-        color = (0, 255, 0) # green
+        label = 'unathurazied-person'
+        color = (0, 0, 255) # green
         cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
         cv2.putText(img, label, (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
