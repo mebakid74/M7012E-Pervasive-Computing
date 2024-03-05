@@ -4,10 +4,13 @@ import numpy as np
 import imutils
 import sys
 import threading
+from controller import Controller
+import requests
 sys.path.insert(0, 'mebakid74/Raspberry-Pi-Home-Security-System-M7012E/src/PTZ Camera')
 
 
 # controller.rotate(180, 140)
+controller = Controller()
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-c', '--config', required=True,
@@ -39,7 +42,10 @@ net = cv2.dnn.readNet(args.weights, args.config)
 conf_threshold = 0.3
 nms_threshold = 0.4
 
-cap = cv2.VideoCapture() # controller.kitchenCameraURL
+
+
+
+cap = cv2.VideoCapture(controller.kitchenCameraURL) 
 
 while True:
     ret, frame = cap.read()
@@ -98,6 +104,9 @@ while True:
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+
+
 
 cap.release()
 cv2.destroyAllWindows()

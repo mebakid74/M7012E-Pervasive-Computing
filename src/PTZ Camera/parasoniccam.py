@@ -23,7 +23,7 @@ def control_camera(pan, tilt):
 # Function to detect and track humans
 def detect_and_track_human():
     # Load pre-trained Haar cascade classifier for full body detection
-    human_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fullbodyx.xml')
+    human_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fullbody.xml')
 
     url = "http://130.240.105.144/cgi-bin/mjpeg?resolution=640x480&framerate=30&quality=1"
     stream = requests.get(url, stream=True)
