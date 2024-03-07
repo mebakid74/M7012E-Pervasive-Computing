@@ -6,12 +6,16 @@ import sys
 import threading
 from controller import Controller
 import requests
+# Necessary libraries
+
+# Insert path to PTZ camera
 sys.path.insert(0, 'mebakid74/Raspberry-Pi-Home-Security-System-M7012E/src/PTZ Camera')
 
-
+# Initialize the controller
 # controller.rotate(180, 140)
 controller = Controller()
 
+# Argument parser
 ap = argparse.ArgumentParser()
 ap.add_argument('-c', '--config', required=True,
                 help = 'mebakid74/Raspberry-Pi-Home-Security-System-M7012E/src/PTZ Camera/yolov3.cfg')
@@ -21,6 +25,7 @@ ap.add_argument('-cl', '--classes', required=True,
                 help = 'mebakid74/Raspberry-Pi-Home-Security-System-M7012E/src/PTZ Camera/yolov3.txt')
 args = ap.parse_args()
 
+# Get output layers of the neural network model
 def get_output_layers(net):
     layer_names = net.getLayerNames()
     try:
@@ -30,6 +35,7 @@ def get_output_layers(net):
 
     return output_layers
 
+# Dtaw bounding boxes and labels on the detected objects.
 def draw_prediction(img, class_id, x, y, x_plus_w, y_plus_h):
     if class_id == 0:
         label = 'unathurazied-person'
@@ -37,11 +43,13 @@ def draw_prediction(img, class_id, x, y, x_plus_w, y_plus_h):
         cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
         cv2.putText(img, label, (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
+# Load the YOLO model
 net = cv2.dnn.readNet(args.weights, args.config)
 
 conf_threshold = 0.3
 nms_threshold = 0.4
 
+# Control the pan + tilt of the camera
 def control_camera(pan, tilt):
     url = "http://130.240.105.144/cgi-bin/aw_ptz"
     command = "#APC{}{}".format(pan, tilt)
@@ -65,7 +73,7 @@ def control_camera(pan, tilt):
 
 
 
-
+# Capture video from the camera
 cap = cv2.VideoCapture(controller.kitchenCameraURL) 
 
 while True:
@@ -90,10 +98,12 @@ while True:
     confidences = []
     boxes = []
 
+    # Iterate for each detection
     for detection in outs[0]:
         scores = detection[5:]
         class_id = np.argmax(scores)
         confidence = scores[class_id]
+        # Chek if the detected object is authorized
         if class_id == 0 and confidence > conf_threshold:
             center_x = int(detection[0] * Width)
             center_y = int(detection[1] * Height)
@@ -108,6 +118,7 @@ while True:
 
     indices = cv2.dnn.NMSBoxes(boxes, confidences, conf_threshold, nms_threshold)
 
+    # Iterate the remaining bounding boxes
     for i in indices:
         try:
             box = boxes[i]
@@ -123,11 +134,12 @@ while True:
 
     cv2.imshow("object detection", frame)
 
+    # Check for *q* key press to exit the loop
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 
 
-
+# Close all windows and release the video capture
 cap.release()
 cv2.destroyAllWindows()

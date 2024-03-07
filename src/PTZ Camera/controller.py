@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 import time
 import pymysql
-from dotenv import load_dotenv
-from camera import HDIntegratedCamera
-from observer_pattern.observer import Observer, Subject
+#from dotenv import load_dotenv
+#from camera import HDIntegratedCamera
+#from observer_pattern.observer import Observer, Subject
 
 BUFFER_SIZE = 10
 FRAME_WIDTH = 1920
@@ -12,6 +12,14 @@ FRAME_HEIGHT = 1080
 SCALING_FACTOR = 0.1
 SLEEP_TIME = 1
 
+#
+#
+#
+#This code is for the camera movement, making it possible for the camera to move according to where the person is. 
+#The code is not complete and for now does not move.
+#
+#
+#
 
 class Controller(Observer):
     def update(self, subject: Subject) -> None:
