@@ -39,9 +39,7 @@ src="https://github.com/mebakid74/Raspberry-Pi-Home-Security-System-M7012E/asset
 <br />
 
 ## Overview
-
-
-
+![System Design](https://github.com/mebakid74/Raspberry-Pi-Home-Security-System-M7012E/assets/76616663/7c58eecd-580a-4c7a-be6b-f398e0d71bf7)
 
 ## Participant
 
